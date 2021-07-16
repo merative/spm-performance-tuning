@@ -1,0 +1,36 @@
+---
+title: Assumptions
+description: Assumptions
+---
+
+## Prerequisites for performance tuning
+
+Before you undertake IBM® Cúram Social Program Management tuning activities, for example, configuring SPM for a specific deployment, obtain an understanding of SPM and the requisite middleware such as IBM WebSphere® Application Server and IBM Db2®.
+Clients will need to engage with middleware team in order to aid them to help them in obtain the necessary architectural understanding. Performance tuning affects many areas of the stack from storage, OpenShift, etc. A multi-disciplinary team will be needed to meet this requirement.
+
+To ensure you are using supported software with the correct versions, refer to the
+[IBM Cúram Social Program Management Supported Prerequisites](https://www.ibm.com/support/pages/ibm-cúram-social-program-management-supported-prerequisites). In addition to the product prerequisites, consult the system requirement documents for each of the required/optional software components.
+
+For more information about IBM Cúram Social Program Management, see
+[IBM Cúram Social Program Management](https://www.ibm.com/docs/en/spm/7.0.11).
+
+## System configuration
+
+Specific values are provided as recommended initial values for the performance tuning process,
+and the performance turning examples that are provided assume certain configuration settings.
+
+The values you identify from your observation and tuning activities might vary, based on a number of factors:
+
+* Distribution of workload
+* Number of processor cores
+* Speed of the processor cores
+* Performance of the I/O system
+
+The provided examples assume the following configuration settings:
+
+* Each application server runs its own messaging engine, as for a high-availability environment.
+* Each server uses a dedicated thread pool that is configured for online processing, and another pool for asynchronous processing.
+
+For more information about configuration details, see the
+[Cúram Social Program Management Clustered IBM WebSphere Application Server Deployment Guide](https://www.ibm.com/support/pages/node/254553),
+or the Cúram Social Program Management Clustered Oracle WebLogic Server Deployment Guide, which is available on request.

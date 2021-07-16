@@ -1,0 +1,43 @@
+---
+title: Tuning JVM settings
+description: Tuning JVM settings
+tabs: ['AppServer','JVM Settings', 'Thread Pools', 'JDBC Settings', 'JMS Settings', 'WAS Java 2 Security']
+---
+
+Because of the memory requirements in Social Program Management, either a 64-bit WebSphere® Application
+Server (WAS) or WebLogic Server (WLS) application server is required for production.
+
+For the SPM internal application and the portals that are deployed in their own cluster, start with the following settings:
+
+```
+minimum heap size = maximum heap size = 4GB
+```
+
+<br/>
+<strong>HotSpot JVM</strong>
+
+* Size the Permanent Generation to at least 512 MB
+* Set the Nursery size to about two-thirds of the Heap size
+
+<br/>
+<strong>GSS and BirtViewer</strong>
+
+* Start with `Minimum Heap Size = Maximum Heap Size = 1GB`
+
+<br/>
+
+Then, use the following heuristic to further tune heap sizes during your load tests, with an objective of
+getting above 98% garbage collection efficiency. Configure the following settings, where `avg_used_after_global`
+is the average amount of used heap after global collections:
+
+```
+-Xmx = 8 * avg_used_after_global
+-Xms = 8 * avg_used_after_global
+-Xmn = 6 * avg_used_after_global
+```
+
+The following common recommendations outline the rationale behind the previous heuristic:
+
+* A recommendation for sizing the tenured generation is to have a free tenured utilization after global collection of around 50%.The tenure contains global and thread-scoped SPM caches, and any long-lived objects.
+* A recommendation for sizing the nursery generation is to have a nursery as large as possible, if the pause times are acceptable. The nursery contains transient objects for in-flight SPM transactions, so its sizing depends on the number of
+concurrent transactions and the average memory payload of a transaction. The goal is to minimize the number of transient objects that survive collections and end up in the tenure. We have found in our load tests that a 3:1 ratio of nursery to tenure gives good results.

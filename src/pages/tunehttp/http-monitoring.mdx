@@ -1,0 +1,34 @@
+---
+title: Monitoring the HTTP server
+description: Monitoring the HTTP server
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+To monitor the HTTP server, modify the `httpd.conf` file as shown in the example.
+
+If you are using secure access to `server-status`, see the relevant HTTP server documentation.
+
+```shell
+LoadModule status_module modules/mod_status.so
+<Location /server-status
+SetHandler server-status
+ Order allow,deny
+ Allow from all
+</Location>
+```
+
+To gather extended status information, ensure that the following section is not commented out in the httpd.conf file:
+
+```shell
+<IfModule mod_status.c>
+ ExtendedStatus On
+</IfModule>
+```
+
+Restart the web server and open the following URL in your browser:
+
+```shell
+http://<web_server_host>/server-status
+```
+
+In the server-status page, you can view the number of threads and their state.

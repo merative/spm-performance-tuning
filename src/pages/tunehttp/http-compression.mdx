@@ -1,0 +1,71 @@
+---
+title: Compressing content from HTTP server
+description: Compressing content from HTTP server
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+Use the Apache module `mod_deflate` to compress the content that is served by the HTTP Server.
+
+## Static content
+
+To apply the configuration for SPM static content, configure the following settings in the `httpd.conf` file on the HTTP server.
+This example assumes that you are using the relative URL `/CuramStatic/`.
+
+```shell
+<LocationMatch /(Curam|CuramStatic)>
+AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/x-
+javascript
+# Netscape 4.x has some problems...
+BrowserMatch ^Mozilla/4 gzip-only-text/html
+# Netscape 4.06-4.08 have some more problems
+BrowserMatch ^Mozilla/4\.0[678] no-gzip
+# MSIE masquerades as Netscape, but it is fine
+BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+# Make sure proxies don't deliver the wrong content
+Header append Vary User-Agent env=!dont-vary
+...
+<LocationMatch/>
+
+```
+
+## Web applications
+
+To apply the configuration for web applications, such as the Universal Access Responsive Web Application,
+configure the following settings in the `httpd.conf` file on the HTTP server.
+This example assumes that you are using the relative URL `/universal` for your Universal Access Responsive
+Web Application application, and that the SPM REST APIs are being served from `/Rest`.
+
+```shell
+# List of MIME types that can be compressed provided with the out-of-the-box application
+# some of them might be already configured in your HTTP server, please edit as required
+<IfModule mime_module>
+  AddType image/x-icon .ico
+  AddType application/javascript .js
+  AddType application/json json
+  AddType image/svg+xml svg
+  AddType text/css css
+  AddType text/html html
+</IfModule>
+
+# mod_filter is needed for "AddOutputFilterByType" in IHS9 (Apache 2.4)
+<IfModule !mod_filter.c>
+  LoadModule filter_module modules/mod_filter.so
+</IfModule>
+<IfModule !mod_deflate.c>
+  LoadModule deflate_module modules/mod_deflate.so
+</IfModule>
+
+# Assuming /Rest is mapped to the Curam SPM REST API application,
+# you can add it to LocationMatch to benefit from the compression of file types like JSON or SVG
+<LocationMatch /(universal|Rest)>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/x-javascript application/javascript image/svg+xml application/json image/x-icon image/vnd.microsoft.icon
+  # Netscape 4.x has some problems...
+  BrowserMatch ^Mozilla/4 gzip-only-text/html
+  # Netscape 4.06-4.08 have some more problems
+  BrowserMatch ^Mozilla/4\.0[678] no-gzip
+  # MSIE masquerades as Netscape, but it is fine
+  BrowserMatch \bMSI[E] !no-gzip !gzip-only-text/html
+  # Make sure proxies don't deliver the wrong content
+  Header append Vary User-Agent env=!dont-vary
+</LocationMatch>
+```

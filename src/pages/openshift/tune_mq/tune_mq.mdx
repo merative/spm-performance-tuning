@@ -1,0 +1,61 @@
+---
+title: Tuning the MQ pods
+description: Tuning the MQ pods
+---
+
+
+<AnchorLinks small>
+  <AnchorLink>Overview</AnchorLink>
+  <AnchorLink>Pod requests and limits</AnchorLink>
+</AnchorLinks>
+
+## Overview
+
+The following information describes how to tune the resources of the MQ pods for each SPM application (for example, `curam`, `rest`, etc.).
+
+As independent from each other, the SPM applications generally require flexibility in specifying tuning settings which is achieved with the `global.apps.config.<applicationID>.mqTuning` values.
+
+For additional information about MQ performance, tuning and sizing please refer to [MQ Performance documents](http://ibm-messaging.github.io/mqperf/).
+
+## Pod requests and limits
+
+The MQ pod `cpu` and `memory` resource requests and limits can be specified by setting `cpu`: and `memory`: values for the `global.apps.config.<applicationID>.mqTuning.resources.requests` and `global.apps.config.<applicationID>.mqTuning.resources.limits` keys,
+which is replaced by the lower-case EAR file basename.
+
+For example, the following configuration illustrates how to set the MQ pods of the `curam` application to have resources requests for the `cpu` of 1 and a `memory` of 1024Mi, and resources limits for the `cpu` of 1 and a `memory` of 1024Mi,
+while setting the MQ pods of the `rest` application to have resources requests for the `cpu` of 1 and a `memory` of 1024Mi, and resources limits for the `cpu` of 1 and a `memory` of 1024Mi:
+
+```yaml
+# Resource limits for the MQ pods of the Curam and Rest application
+global:
+  apps:
+    config:
+      curam:
+        mqTuning:
+          resources:
+            requests:
+              cpu: 1
+              memory: 1024Mi
+            limits:
+              cpu: 1
+              memory: 1024Mi
+        ...
+      rest:
+        mqTuning:
+          resources:
+            requests:
+              cpu: 1
+              memory: 1024Mi
+            limits:
+              cpu: 1
+              memory: 1024Mi
+        ...
+```
+
+<InlineNotification kind="warning">
+
+For the Guaranteed QoS, SPM highly recommends that a pod must have **both** CPU and Memory requests and limits set to equal values. If requests & limits are different for a given pod, it would be eligible for rescheduling in case of resource pressure on its node.
+
+For more information please review [Configure Quality of Service for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed).
+
+</InlineNotification>

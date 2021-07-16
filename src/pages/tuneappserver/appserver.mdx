@@ -1,0 +1,24 @@
+---
+title: Tuning the application server
+description: Tuning the application server
+tabs: ['AppServer','JVM Settings', 'Thread Pools', 'JDBC Settings', 'JMS Settings', 'WAS Java 2 Security']
+---
+
+Use these starting values for application server tuning parameters to tune your application servers.
+The parameters are key to the performance of Social Program Management on applications servers such as WebSphere®
+Application Server (WAS) and WebLogic Server (WLS). Refine the values during load testing of the system and
+during monitoring of production. A load test phase in the project is highly recommended.
+
+## Number of application servers
+
+Determine the number of application servers in your application clusters that are based on availability requirements.
+An initial starting point is to have at least two application servers per cluster. However, it is recommended
+to use three or more application servers per cluster to ensure good performance and quality of service in case of server failure.
+
+Another consideration for the number of application servers is the number of cores that are available from the operating
+system. In general, it is recommended to keep the number of threads in a Social Program Management application server
+to a low multiplier of the number of cores, as described in the [Thread pools](/tuneappserver/thread-pools) section. However,
+a high number of cores can result in a very high number of threads and, therefore, a higher probability of threads
+contending on Java locks. In that case, it is advisable to split the threads across multiple application servers
+instead of just one, which reduces the probability of contention. However, a drawback of this approach is increased
+memory utilization on the operating system as multiple JVMs are needed.

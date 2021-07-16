@@ -1,0 +1,28 @@
+---
+title: WAS tunable parameters summary
+description: WAS tunable parameters summary
+---
+
+The table in this section summarizes the parameters that you can tune in WebSphere® Application Server (WAS).
+<Caption>
+
+*Table 1:* Summary of tunable parameters for WAS
+
+</Caption>
+
+|Tuning parameter|Description and use|Recommended value|
+|----------------|-------------------|-----------------|
+|`SERVLET CACHING`|After a servlet is launched and completes generating the output to cache, a cache entry is created that contains the output and the side effects of the servlet. The side effects can include calls to other servlets, JavaServer Pages (JSP) files, or metadata about the entry, including timeout and entry priority information. Configure servlet caching to save the output of servlets and JavaServer Pages (JSP) files to the dynamic cache.|Disable|
+|`SERVLET REQUEST AND RESPONSE POOLING`|Specifies to disable the pooling of servlet request and servlet response objects that are pooled by the web container. When you disable pooling of servlet request and servlet response objects, new servlet request and servlet response objects are created for each request, that can negatively affect performance, but that provide protection from any unforeseen pooling issues.|Disable|
+|`JAVA HEAP`|By default the application server JVM initial and maximum heap size is set to 1024 MB. However, you can override the default JVM initial and maximum heap size by setting the `curam.server.jvm.heap.size` property in the AppServer.properties file. We recommend setting minimum heap size = maximum heap size to 4 GB as a starting point. You can then use a heuristic algorithm to further tune the heap size and achieve high garbage collection efficiency.|Start with `curam.server.jvm.heap.size=4096` Then further tune the application server JVM heap size by using the following heuristic:  <ol><li> `-Xmx = 8 * avg_used_after_global` </li> <li>`-Xms = 8 * avg_used_after_global`</li> <li>`-Xmn = 6 * avg_used_after_global</li></ol>` </li> </ol> |
+|`NUMBER OF HTTP SESSIONS`|Tune the number of allowed HTTP sessions to a large enough number to serve your expected number of users. Ensure that the timeout is set so as not to waste sessions and to keep memory usage under control.|See description.|
+|`CONNECTION TIMEOUT` and `KEEP-ALIVE`|HTTP persistent connection, or HTTP keepalive, is where a single connection is used to send and receive multiple HTTP requests.|Depends on system behavior under load. Disable if the issues that are mentioned in [Configuring persistent connections](../tunehttp/persistent-connections.mdx) occur.|
+|`NUMBER OF WEB THREADS`|HTTP requests are processed by a pool of server threads. You can configure the minimum and maximum thread pool size for the web container for optimal performance.|`WebContainer_max_threads = number of cores` `WebContainer_min_threads = WebContainer_max_threads`|
+|`NUMBER OF MDB THREADS`|`SIBJMSRAThreadPool` is set up to process JMS messages. Always set minimum threads = maximum threads to avoid thread reconstruction.|`SIBJMSRAThreadPool_max_threads = number of cores` `SIBJMSRAThreadPool_min_threads = SIBJMSRAThreadPool_max_threads`|
+|`MAX CONCURRENT MDB INVOCATIONS PER ENDPOINT` (activation specifications)|A JMS activation specification is associated with one or more message-driven beans (MDBs) and provides the configuration necessary for the MDBs to receive messages.|For all queues set the value equal to `SIBJMSRAThreadPool_max_threads`|
+|`QUEUES FETCH` (activation specifications)|Use this setting to control the message retrieval from the queue. We recommend setting the value equal to `SIBJMSRAThreadPool_max_threads` to aim for zero messages in the queue.|Set equal to `SIBJMSRAThreadPool_max_threads`|
+|`MIN/MAX CONNECTIONS` (connection factory)|This setting is used to size the connection pool for JMS connection factory messages. To prevent the processing cost of pool growth and shrinkage, we suggest setting `min_connections = max_connections`.|`max_connections = WebContainer_max_threads + SIBJMSRAThreadPool_max_threads + 1min_connections=max_connections`|
+|`NUMBER OF DATABASE CONNECTIONS` (jdbc data source)|An SPM transaction needs two JDBC connections, transaction and KeyServer. `jdbc/curamdb` data source connection pool needs to be sized to ensure that more connections are available than threads. Use Performance Monitoring Infrastructure (PMI) to identify the average number of connections and to size the pool to three times that number to avoid deadlocks.|`max_connections = WebContainer_max_threads + SIBJMSRAThreadPool_max_threads + 1`|
+|`STATEMENT CACHE SIZE` (jdbc data source)|This parameter controls the size of the data source prepared statement cache size. We recommend a starting value of 1000. However, monitor the cache size and increase the value if discards occur.|Starting value 1000|
+|`CONTAINER MANAGED PERSISTANCE`(jdbc data source)|An entity bean that uses container-managed persistence (CMP) delegates the management of its state, or persistence, to the application server container. We observed better response times when CMP is disabled.|Disable in `Curamdb` and `curamsibdb`|
+|`JAVA 2 SECURITY`|Social Program Management (SPM) does not use Java 2 Security and this WAS feature has a performance cost when it is turned on.|Turn off|

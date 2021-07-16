@@ -1,0 +1,60 @@
+---
+title: Db2
+description: Db2
+tabs: ['Db2','Oracle']
+---
+
+<AnchorLinks small>
+  <AnchorLink>Physical database design</AnchorLink>
+  <AnchorLink>Maintenance</AnchorLink>
+  <AnchorLink>Registry variables</AnchorLink>
+</AnchorLinks>
+
+The following maintenance and database design guidelines apply to tuning Db2® databases.
+
+<InlineNotification kind="warning">
+
+Database tuning provided in this guidance is not comprehensive.
+
+However, the following values are a starting point for how to configure a performant database for IBM® Cúram Social Program Management.
+It is our recommendation that project teams verify their own tuning, and where necessary adapt and expand the configuration based on their own requirements prior to going in to production.
+
+</InlineNotification>
+
+## Physical database design
+
+In addition to physical database design done as part of the project, the following tips apply specifically to performance and scalability:
+
+* Create two 4 K page buffer pools, one for data and one for indexes, and a 4 K page temporary table space.
+* Create a 4 K page large table space for data, with no file system caching.
+* Create a 4 K page large table space for indexes, with no file system caching.
+* Create a 4 K page large table space for LOBs, with file system caching (to enable buffering of Large Object types (LOBs).
+* Move all indexes to the 4 K page indexes table space. A common page size makes database administration easier and improves performance. For example, indexes of tables in the 32 K page table space that use 4 K pages require less I/O.
+* Move all LOBs to the 4 K page LOBs table space.
+* Move all tables that do not need 32 K page to the 4 K page data table space. It can improve buffer pool utilization and decrease database I/O.
+* Enable compression on tables if it is wanted. Compression was tested by IBM with no issues.
+* Review the use of dedicated table spaces. Consider moving the largest tables (for example, `DYNAMICEVIDENCEDATAATTRIBUTE` and `DEPENDENCY`) to dedicated table spaces. However, from experience, with good I/O layouts, the only reason for dedicated table spaces is maintenance.
+* Review the use of partitioning. From experience, with good I/O layouts, the only reason for partitioning is maintenance (similar to dedicated table spaces).
+
+## Maintenance
+
+Regular database maintenance is essential to ensure optimal performance and reliability of your databases.
+Running the `REORG` and `RUNSTATS` utilities is critically important for optimal performance with Db2 databases.
+After the database is populated, do the maintenance on a regularly scheduled basis, such as weekly.
+A regularly scheduled maintenance plan is essential to maintain peak performance of your system.
+
+## Registry variables
+
+To improve the buffer pool management and increase performance in Db2, you can set the following Db2 registry variables:
+
+```sql
+DB2_USE_ALTERNATE_PAGE_CLEANING=ON
+```
+
+To enable Db2 to parallelize IO to that logical volume, you can set the following setting:
+
+```sql
+DB2_PARALLEL_IO=*:n
+```
+
+* where the number of disks in the RAID array that backs a logical volume is represented by `n`.

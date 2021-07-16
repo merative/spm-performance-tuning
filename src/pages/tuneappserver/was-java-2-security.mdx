@@ -1,0 +1,15 @@
+---
+title: Tuning WAS Java 2 security
+description: Tuning WAS Java 2 security
+tabs: ['AppServer','JVM Settings', 'Thread Pools', 'JDBC Settings', 'JMS Settings', 'WAS Java 2 Security']
+---
+
+The recommendation is to turn off Java 2 security because Social Program Management (SPM) does not use it.
+The WebSphere® Application Server (WAS) Java 2 security feature has a performance cost when it is turned on.
+
+In WAS, when Java™ 2 security is turned on, every time Java code calls the classloader to load a class or a resource and so on,
+the call goes through a synchronized block, then a security check, and potentially an access to the file system and then another security check.
+Effectively, the impact is twofold:
+
+* Performance degrades badly in low memory situations, as weak reference caches like ResourceBundles are constantly cleared and reloaded. Each reload means a call to the classloader, and hence going through a Java lock, security checks, and a file system access.
+* Even in a normal memory situation, it is a bottleneck because Java code that is calling the classloader goes through the lock and security checks.

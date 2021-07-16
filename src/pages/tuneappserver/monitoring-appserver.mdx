@@ -1,0 +1,82 @@
+---
+title: Monitoring the application server
+description: Monitoring the application server
+---
+
+Use the tasks in the following section to monitor the system after you make the tuning changes.
+
+## JVM
+
+To confirm and fine-tune the JVM heap size, turn on garbage collection (GC) logging by adding the following JVM parameter:
+
+```shell
+-verbose:gc
+```
+
+On WebSphere® Application Server (WAS) with the IBM JVM, you can specify the location of the GC log file by setting the following JVM parameter:
+
+```shell
+-Xverbosegclog:<<path to file>>
+```
+
+With a non-IBM JVM, you can specify the location by setting the following JVM parameter:
+
+```shell
+-Xloggc:<<path to file>>
+```
+
+You can then process the GC log file to analyze the GC efficiency and identify better GC tuning values.
+As a general convention, if more than 2% of the JVM time is spent doing garbage collection,
+adjust the heap size as described in the [JVM settings](/tuneappserver/jvm-settings) section.
+
+## JVM heap size for WebSphere Application Server Liberty
+
+To get a heap dump if the JVM crashes, set the following JVM parameter:
+
+```shell
+-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=$WLP_HOME/usr/servers/CuramServer/
+```
+
+`-XX:+HeapDumpOnOutOfMemoryError` generates a heap dump when an allocation from the Java™ heap or the permanent generation cannot be satisfied.
+
+## Threads
+
+Monitor thread utilization in the thread pools. For example, the `WebSphere Performance Viewer - “Active Thread”`
+counter shows the number of threads that are used in a thread pool. You can compare the counter with the defined
+number of threads to determine whether a thread pool is fully used.
+
+If a thread pool shows as fully used and if spare CPU capacity exists, you can add a thread to the thread pool.
+Then, use the formulas that are described previously to update the connection pool sizes to reflect the new number of threads.
+If no spare CPU capacity exists, then you must balance the tuning to favor either online or asynchronous processing.
+
+Consider the case where the online thread pool is fully used, which results in poor user response times from the application server.
+You might favor the online processing by decreasing the number of asynchronous threads by 1 and by increasing the number of online threads by 1.
+
+## JDBC
+
+Monitor the prepared statement cache discards for the `jdbc/curamdb` data source. For example,
+in WAS, monitor the `JDBC connection pools PrepStmtCacheDiscardCount` in the `WebSphere Performance Viewer -Extended Statistic Set`.
+
+Not reusing a prepared statement has a significant processing cost. Therefore, aim for no discards,
+and increase the prepared statement cache size if many discards are reported. If you are using the Oracle database,
+monitor the maximum number of open cursors and update the configuration as needed.
+
+## JMS
+
+Monitor the depth of JMS queues at run time. It indicates how many messages are waiting to be processed.
+For example, in WAS the `AvailableMessageCount` counter is available from the `WebSphere Performance Viewer-All Statistic-Queues-Queue Stat`.
+The following list indicates the key queues to monitor:
+
+* `DPEnactment`
+* `WorkflowEnactment`
+* `WorkflowActivity`
+
+If the rate of JMS message processing is not satisfactory and if spare CPU capacity exists,
+you can increase the number of threads. Use either `SIBJMSRAThreadPool` for WAS or `MDBWorkManager` for WLS.
+
+However, if no spare CPU capacity exists, review either the maximum concurrent endpoints for the queues in WAS or the beans
+in the free pool in WLS. In this case, either constrain the queues in WAS or the WLS free pool beans that have a
+low depth to favor those queues with a high depth. That is, either the queues or the beans that have high queue depths or message counts need more resources.
+
+For more information about applying the constraints, see [WAS - activation specifications](/tuneappserver/jms-settings)
+or [WLS - message driven beans](/tuneappserver/jms-settings).

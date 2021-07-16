@@ -1,0 +1,99 @@
+---
+title: Tuning JMS settings
+description: Tuning JMS settings
+tabs: ['AppServer','JVM Settings', 'Thread Pools', 'JDBC Settings', 'JMS Settings', 'WAS Java 2 Security']
+---
+
+The application server settings for Java Message Service (JMS), which include connection factory and activation specification settings,
+can affect performance. You must tune both the connection factory settings and the activation specification settings.
+
+The client of a connection factory is the application. The application uses the connection factory to push or pull messages
+to or from the messaging engine through a queue. The client of an activation specification is the Enterprise JavaBeans (EJB) container.
+The EJB container obtains an activation specification to register a `MessageEndpointFactory` for the message driven bean (MDB) with a ResourceAdapter.
+
+When a client pushes a message to the messaging engine, the messaging engine uses the registered `MessageEndpointFactory`
+to forward the message to the application, for example, the MDB. Then, the application asynchronously receives messages,
+rather than requiring the client to poll or block by trying to pull a message from the queue.
+
+## Connection factory: jms/CuramConnectionQueueFactory
+
+Similar to the `jdbc/curamsibdb` data source, size the connection pool for the `jms/CuramConnectionQueueFactory`
+connection factory by using the following formula:
+
+<br/>
+<strong>WebSphere</strong>
+
+```
+max_connections = WebContainer_max_threads + SIBJMSRAThreadPool_max_threads + 1
+```
+
+<br/>
+<strong>WebLogic</strong>
+
+```
+max_connections = default_max_thread_constraint + MDBWorkManager_Max_thread_constraint +1
+```
+
+To prevent the processing cost of pool growth and shrinkage, it is suggested to set `min_connections = max_connections`.
+
+## WebSphere - activation specifications
+
+Tune the maximum concurrent end points for the JMS activation specifications for the SPM queues. The settings define
+how many EJB MDBs are available to process JMS messages. Asynchronous processing concurrency in the application server
+is limited by the lower of the number of either `MDBs` or `SIBJMSRAThreadPool` threads.
+
+Set the maximum concurrent end points for the SPM error queues to 1. This setting is suggested because errors are not expected at high volume.
+
+This sizing applies to the following activation specifications:
+
+* `DPError`
+* `WorkflowError`
+* `CuramDeadMessageQueue`
+
+Then, for simplicity, use the following formulas to set the maximum concurrent end points for the three main SPM queues:
+
+```
+max_end_points_DPEnactment = SIBJMSRAThreadPool_max_threads
+max_end_points_WorkflowEnactment = SIBJMSRAThreadPool_max_threads
+max_end_points_WorkflowActivity = SIBJMSRAThreadPool_max_threads
+```
+
+The previous formulas effectively simplify tuning for asynchronous processing by creating a single point for tuning,
+which is the number of JMS threads. However, if more granular tuning is required, you can decrease the concurrent end points,
+for either SPM Deferred Processing or Workflow.
+
+## WebLogic - message driven beans
+
+In WebLogic, the number of EJB MDBs is set in the `-ejb-jar.xml` deployment descriptor. The descriptor also associates
+MDBs with the MDBWorkManager, as shown in the following example:
+
+```
+<weblogic-enterprise-bean>
+    ...
+    <message-driven-descriptor>
+    <pool>
+        <max-beans-in-free-pool>3</max-beans-in-free-pool>
+        <initial-beans-in-free-pool>3</initial-beans-in-free-pool>
+    </pool>
+    </message-driven-descriptor>
+    ...
+    <dispatch-policy>MDBWorkManager</dispatch-policy>
+</weblogic-enterprise-bean>
+
+```
+
+Set both the maximum and initial values of the beans in the free pool for the SPM error MDBs to 1. This setting is suggested
+because errors are not expected at high volume, and it applies to the `DPErrorMDB` and `WorkflowErrorMDB` beans.
+
+Then, for simplicity, use the following formulas to set both the maximum and initial values of the beans in the free pool for the three main SPM MDBs:
+
+```
+beans_in_free_pool_DPEnactmentMDB=MDBWorkManager_max_thread_constraint
+beans_in_free_pool_WorkflowEnactmentMDB=MDBWorkManager_max_thread_constraint
+beans_in_free_pool_WorkflowActivityMDB=MDBWorkManager_max_thread_constraint
+
+```
+
+The previous formulas effectively simplify tuning for asynchronous processing by creating a single point for tuning,
+which is the number of JMS threads. However, if more granular tuning is required, you can decrease the beans in the free pool,
+for either SPM Deferred Processing or Workflow.

@@ -31,10 +31,6 @@
   pages:
   - title: Introduction
     path: /openshift/introduction
-  #- title: Deployment architecture
-  #  path: /openshift/deployment_architecture
-  #- title: SPM workload patterns
-  #  path: /openshift/spm_workload_patterns/spm-workloads-explained
   - title: Tuning the JMS producer pods
     path: /openshift/tune_jms_producer/tune_jms_producer
   - title: Tuning the JMS consumer pods
@@ -45,10 +41,6 @@
     path: /openshift/tune_mq/tune_mq
   - title: Tuning the HTTP server pods
     path: /openshift/tune_http_server/tune_http_server
-  #- title: Tuning pod replicas and OpenShift
-  #  path: /openshift/tune_openshift/tune_pod_replicas_and_openshift
-  #- title: SPM configuration
-  #  path: /openshift/spm_config
   hasDivider: true
 - title: Disclaimer
   pages:

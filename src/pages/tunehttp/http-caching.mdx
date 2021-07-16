@@ -1,0 +1,54 @@
+---
+title: Caching content from the HTTP server
+description: Caching content from the HTTP server
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+You can use the Apache module `mod_expires` to automatically configure the HTTP header of static
+content or web applications to be cached by the browser. You can adjust the expiration time according to how often you deploy code to production.
+
+For more information about Apache module `mod_expires`, see [Apache Module mod\_expires](https://httpd.apache.org/docs/2.4/mod/mod_expires.html)
+in the Apache documentation.
+
+## Static content
+
+To apply the configuration for SPM static content, configure the following settings in the `httpd.conf`
+file on the HTTP server. This example assumes that you are using the relative URL `/CuramStatic/`.
+
+```shell
+<LocationMatch /(Curam|CuramStatic)>
+...
+ExpiresActive On
+ExpiresByType text/css "access plus 1 month"
+ExpiresByType text/javascript "access plus 1 month"
+ExpiresByType text/plain "access plus 1 month"
+ExpiresByType image/gif "access plus 1 month"
+ExpiresByType image/jpg "access plus 1 month"
+ExpiresByType image/png "access plus 1 month"
+ExpiresByType application/x-shockwave-flash "access plus 1 month"
+ExpiresByType application/x-javascript "access plus 1 month"
+Header unset Last-Modified
+</LocationMatch>"
+
+```
+
+To increase performance under heavy loads, consider hosting the static content on a separate server, which reduces the load on the SPM application server.
+
+## Web applications
+
+To apply the configuration for web applications, such as the Universal Access Responsive Web Application,
+configure the following settings in the `httpd.conf` file on the HTTP server. This example assumes that you are using the relative URL `/universal`.
+
+```shell
+<IfModule !mod_headers.c>
+  LoadModule headers_module modules/mod_headers.so
+</IfModule>
+<IfModule !mod_expires.c>
+  LoadModule expires_module modules/mod_expires.so
+</IfModule>
+<LocationMatch /universal>
+  ExpiresActive On
+  ExpiresDefault "access plus 1 month"
+Header unset Last-Modified
+</LocationMatch>
+```

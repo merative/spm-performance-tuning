@@ -1,0 +1,40 @@
+---
+title: Tuning batch processes
+description: Tuning batch processes
+---
+
+<AnchorLinks small>
+  <AnchorLink>Batch chunk size</AnchorLink>
+  <AnchorLink>Db2®</AnchorLink>
+  <AnchorLink>Oracle</AnchorLink>
+</AnchorLinks>
+
+Use the following guidelines to tune the performance of batch processes.
+
+## Batch chunk size
+
+For streamed batch jobs, to offer good balance between scalability and error management,
+tune the chunk size for a batch job so that it takes between one to two minutes to process one chunk.
+
+For more information see the SPM [Tuning batch streaming performance](https://www.ibm.com/docs/en/spm/7.0.11?topic=application-tuning-batch-streaming-performance) topic.
+
+## Db2®
+
+When Db2 is used, set the following tables to be volatile:
+
+```shell
+BATCHPROCESS
+BATCHPROCESSCHUNK
+```
+
+## Oracle
+
+When Oracle is used, enable Oracle connection and statement caching in the `Bootstrap.properties` file:
+
+```shell
+curam.db.oracle.connectioncache.enabled=true
+curam.db.oracle.connectioncache.minlimit=3
+curam.db.oracle.connectioncache.maxlimit=3
+curam.db.oracle.connectioncache.initiallimit=3
+curam.db.oracle.cachesize=1000
+```

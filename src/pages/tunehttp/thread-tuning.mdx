@@ -1,0 +1,88 @@
+---
+title: Adjusting thread tuning
+description: Adjusting thread tuning
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+If the system throughput is known or a good estimation of the system throughput is available, you can calculate
+the number of threads that are in the web server. You can do the calculation after the persistent connections are configured.
+
+The following formula indicates the total number of threads that are required in the web server:
+
+```
+Throughput * KeepAliveTimeOut
+```
+
+Alternatively, you can use the following formula to obtain a rough starting value for the number of threads
+that you can use, where `WebContainer_max` is the number of application server threads that are available to process HTTP requests:
+
+```
+WebContainer_max * KeepAliveTimeOut
+```
+
+If the HTTP server load balances against multiple application servers, multiply the number of threads as needed:
+
+```
+ratio_of_application_servers_per_HTTP_servers * WebContainer_max * KeepAliveTimeOut
+```
+
+The previous thread calculation is likely to be too low a number, but you can use it as a quick start. Then,
+refine the number of threads during load tests or production monitoring by including the 95th percentile of response time through the following heuristic:
+
+```
+threads = ratio_of_application_servers_per_HTTP_servers * WebContainer_max *
+(KeepAliveTimeOut + user_interaction_95th%ile_response_time)
+```
+
+You might need to adjust the number of threads further depending on the following factors:
+
+* The average amount of static content that is in your web pages
+* How well the static content is cached by the web browser
+
+The dependency occurs because some web clients can use multiple connections for retrieving the static content on a web page.
+The behavior is a strong case for monitoring the HTTP server threads utilization.
+
+During monitoring, as a general convention, increase the number of threads only if the following statements are true:
+
+* All threads are active, and no idle threads exists.
+* The response time is not acceptable.
+* The CPU is not fully utilized.
+
+The procedure for setting the number of threads differs according to the operating system:
+
+<Tabs>
+
+<Tab label="Unix/Linux">
+<Row>
+<Column>
+
+```
+ServerLimit           1
+ThreadLimit           300
+StartServers          1
+MaxClients            300
+MinSpareThreads       300
+MaxSpareThreads       300
+ThreadsPerChild       300
+MaxRequestsPerChild   0
+```
+
+</Column>
+</Row>
+</Tab>
+
+<Tab label="Windows">
+<Row>
+<Column>
+
+```
+ThreadLimit           300
+ThreadsPerChild       300
+MaxRequestsPerChild   0
+```
+
+</Column>
+</Row>
+</Tab>
+
+</Tabs>

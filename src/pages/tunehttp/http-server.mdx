@@ -1,0 +1,16 @@
+---
+title: Tuning the HTTP server
+description: Tuning the HTTP server
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+Use these guidelines to tune the HTTP server. The HTTP server typically hosts Social Program Management
+(SPM) static content, and web applications that are built by using assets such as the IBM® Universal Access
+Responsive Web Application or the IBM Social Program Management Design System.
+
+## Static Content
+
+An application server is optimized to serve dynamic content, while an HTTP server is optimized to serve static content.
+Package the IBM® Cúram Social Program Management (SPM) static content and copy it to the HTTP Server.
+
+To enable static content in SPM, set the `STATIC_CONTENT_SERVER` element in the curam-config.xml file and do a full SPM build.

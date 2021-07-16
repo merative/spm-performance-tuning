@@ -1,0 +1,421 @@
+---
+title: Tuning the JMS producer pods
+description: Tuning the JMS producer pods
+---
+
+<AnchorLinks small>
+  <AnchorLink>Overview</AnchorLink>
+  <AnchorLink>SPM configuration reference overrides</AnchorLink>
+  <AnchorLink>Pod replica count</AnchorLink>
+  <AnchorLink>Pod requests and limits</AnchorLink>
+  <AnchorLink>Liberty thread pool</AnchorLink>
+  <AnchorLink>Liberty JDBC configuration tuning</AnchorLink>
+  <AnchorLink>Liberty JMS configuration tuning</AnchorLink>
+  <AnchorLink>Liberty JVM heap</AnchorLink>
+  <AnchorLink>Liberty HTTP session replication</AnchorLink>
+</AnchorLinks>
+
+<InlineNotification>
+
+**Note:**  There are failover and performance considerations to be weighed which customers should evaluate and test, specific to their requirements and environment.
+
+For more information see:
+
+* IBM Documentation: [Configuring Liberty session persistence to a database](https://www.ibm.com/docs/en/was-liberty/base?topic=manually-configuring-liberty-session-persistence-database).
+* IBM Documentation: [HTTP Session Database (httpSessionDatabase)](https://www.ibm.com/docs/en/was-liberty/base?topic=configuration-httpsessiondatabase).
+* Additional Liberty tuning advice in the HTTP Sessions section of the [IBM WebSphere Application Server Performance Cookbook](https://publib.boulder.ibm.com/httpserv/cookbook/WebSphere_Application_Server-WAS_Liberty.html#http-session-database-persistence).
+
+</InlineNotification>
+
+## Overview
+
+The term **JMS producer** refers to the functional structure of SPM applications (for example, `curam`, `rest`, etc.)
+as deployed in OpenShift such that the client portion of the application is isolated from its server side functionality.
+That is, SPM clients produce JMS messages that perform asynchronous operations, which are consumed by corresponding **JMS consumer** pods.
+For more information please review [Transaction isolation](https://www.ibm.com/docs/en/spm/7.0.11?topic=architecture-transaction-isolation).
+
+Benefits of this separation include:
+
+* Allowing unique tuning that caters to the type of work done in each pod type
+* Separation of JMS/MQ put and get functionality
+* Scale JMS producer independently of the JMS consumer
+* Isolation of the Kubernetes services
+
+## SPM configuration reference overrides
+
+<InlineNotification>
+
+Sample override files are available in the [spm-kubernetes/static/resources](https://github.com/IBM/spm-kubernetes/tree/master/static/resources) folder.
+
+These samples illustrate basic deployment settings for several environments.   All the settings are listed in the [Configuration Reference](https://ibm.github.io/spm-kubernetes/deployment/config-reference/) topic.
+
+</InlineNotification>
+
+Helm charts allow for flexibility in specifying tuning settings.
+In SPM deployments, tuning configuration settings can be made globally, by deployment type (e.g. producer), or by application (e.g. `curam`).
+
+The list below that illustrates this tuning flexibility where `<applicationID>` is replaced by the lower-case EAR file basename; that is, in the case of `Curam.ear` use the value `curam`:
+
+* `apps.global.tuningDefaults` - global tuning
+* `global.apps.config.<applicationID>.producerTuning` - dictionary containing tuning values specific to the producer pods for that application
+* `global.apps.config.<applicationID>` - for the following keys:
+  * `jvm` - Liberty JVM heap and other settings
+  * `replicaCount` - the number of replicas
+  * `resources` - varies by application
+  * The various keys from the `apps.tuningDefaults` dictionary.
+
+Further, `apps.tuningDefaults.resources` allows for fine tuning of a pod's resources, overriding `global.apps.config.<applicationID>.resources`.
+
+## Pod replica count
+
+The purpose of specifying a replica count is to maintain a stable set of replica Pods running at any given time. As such, it is often used to guarantee the availability of a specified number of identical Pods.
+
+The OpenShift and Kubernetes documentation provide more information about replicas:
+
+* OpenShift: [Replication controllers](https://docs.openshift.com/container-platform/4.7/applications/deployments/what-deployments-are.html#deployments-replicationcontrollers_what-deployments-are)
+* Kubernetes: [ReplicaSet](https://kubernetes.io/docs/concepts/workloads/controllers/replicaset/)
+  
+The number of replicas in a deployment can be specified globally via `apps.replicaCount` or via `global.apps.config.<applicationID>.replicaCount`: where `<applicationID>` is replaced by the lower-case EAR file basename (e.g., `curam`, `citizenportal`, `rest`, etc).
+
+The default is a single replica.
+
+For example, an override file to specify 2 `curam` replicas and 4 `rest` replicas:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        replicaCount: 2
+      rest:
+        replicaCount: 4
+...
+```
+
+The number of replicas can also be specified at a more granular level for producer and consumer deployments.
+For example, an override file to specify three `curam producer` replicas and six `curam consumer` replicas:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          replicaCount: 3
+        consumerTuning:
+          replicaCount: 6
+...
+```
+
+## Pod requests and limits
+
+The OpenShift and Kubernetes documentation provide more information about requests and limits:
+
+* OpenShift: [Resource quotas per project](https://docs.openshift.com/container-platform/4.7/applications/quotas/quotas-setting-per-project.html)
+* Kubernetes: [Managing Resources for Containers](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/)
+
+The SPM Helm charts are coded to be able to specify `cpu` and `memory` requests and limits. For instance, this shows the default settings for `curam` application pods:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        resources:
+          limits:
+            cpu: 2
+            memory: 4Gi
+          requests:
+            cpu: 2
+            memory: 4Gi
+...
+```
+
+<InlineNotification kind="warning">
+
+For the Guaranteed QoS, SPM highly recommends that a pod must have **both** CPU and Memory requests and limits set to equal values. If requests & limits are different for a given pod, it would be eligible for rescheduling in case of resource pressure on its node.
+
+For more information please review [Configure Quality of Service for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed).
+
+</InlineNotification>
+
+These requests and limits can also be specified at a more granular level for producer and consumer deployments.
+
+For example:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          resources:
+            limits:
+              cpu: 2
+              memory: 3584Mi
+            requests:
+              cpu: 2
+              memory: 3584Mi
+        consumerTuning:
+          resources:
+            limits:
+              cpu: 2
+              memory: 2048Mi
+            requests:
+              cpu: 2
+              memory: 2048Mi
+...
+```
+
+## Liberty thread pool
+
+The total number of threads that SPM uses in a producer pod can be set initially to `(requested_cpu * 2)`. Setting the number of threads to twice the number of cores is based on experience that processing in SPM is usually split relatively equally between I/O and CPU.
+
+The SPM Helm charts allow for overriding the WebSphere Liberty executor thread pool minimum (`coreThreads`) and maximum (`maxThreads`) settings either globally
+(e.g. `apps.tuningDefaults.coreThreads`) or per application as per the [Initial Tuning Settings](https://ibm.github.io/spm-kubernetes/resources/tuning-values.yaml).
+
+For example, a tuning specification of 8 threads for `curam` producer pods:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          coreThreads: 8
+          maxThreads: 8
+...
+```
+
+The `coreThreads` and `maxThreads` values map to the pod's WebSphere Liberty configuration in `/config/server.xml` and the values are populated via `/config/server.env`.
+
+For example:
+
+```xml
+<server>
+  ...
+  <executor coreThreads="${env.EX_CORE_THREADS}" maxThreads="${env.EX_MAX_THREADS}" />
+</server>
+```
+
+## Liberty JDBC configuration tuning
+
+### Data source: `jdbc/curamdb`
+
+A Social Program Management (SPM) transaction can require two JDBC connections, one for the transaction itself and another one for the key server.
+
+Therefore, size the `jdbc/curamdb` data source connection pool to prevent deadlocks, with more connections available than threads that SPM uses.
+
+### Data source: `jdbc/curamtimerdb`
+
+The EJB timer service is used by all SPM transactions, but only once per transaction, in our application infrastructure and at the very start of an SPM transaction. Currently, no reference to or usage of this service exists after the very start of an SPM transaction.
+
+You can tune the size of the jdbc/curamtimerdb data source connection pool to be the same size as the number of threads, which would ensure that no contention can occur on the pool.
+However, given that the time that is spent using the EJB timer service is typically short compared to the duration of the transactions, a smaller size should work well without significant contention.
+So our advice is to start with the default size, monitor the system, and then increase the size if evidence exists of a significant contention under normal conditions.
+
+### Statement Cache Size
+
+As a starting value for SPM, set the data source prepared statement cache size for `jdbc/curamdb` to `1000`.
+Then, monitor the cache use and increase it if discards occur. In our experience, preventing discards can increase throughput by up to 20%.
+
+<InlineNotification>
+
+**Note:** While we recommend an initial value of 1000 for the prepared statement cache to prevent discards,
+this value can be too high for SPM-based systems that have many threads and that are memory constrained.
+In that case, it is recommended to review the SQLStats from the JMX Stats, from either load tests or production.
+Then, use a simple heuristic based on the distribution of SQL executions to find a smaller cache size that covers around
+90% of SQL executions from the application and gives a better balance between system performance and Java™ heap utilization.
+However, monitor prepared statement cache discards, system performance, and heap utilization, and adjust the cache size further as needed.
+
+</InlineNotification>
+
+### JDBC configuration tuning
+
+The WebSphere Liberty [JDBC configuration](https://www.ibm.com/docs/en/was-liberty/base?topic=configuration-datasource) is tunable for each of these database definitions:
+
+|Database definitions | Description |
+|:- | :- |
+|`curamdb`|Used by SPM applications|
+|`curamtimerdb` | Used by the [SPM timer infrastructure](https://www.ibm.com/docs/en/spm/7.0.11?topic=behavior-cram-timer) |
+|`curamsessdb`| Used for WebSphere Liberty's [HTTP session replication](/openshift/tune_jms_producer/tune_jms_producer#liberty-http-session-replication)|
+
+The following yaml keys are provided for tuning the WebSphere Liberty JDBC configuration:
+
+* _maxPoolSize_ -  Maximum number of database connections; Helm chart default: `8`
+  * `curamdb_maxPoolSize` = `(( max_threads * 2 ) + 1))`
+  * `curamtimerdb_maxPoolSize` = `( max_threads + 1)`
+  * `curamsessdb_maxPoolSize`= `( max_threads + 1 )`
+* _numConnectionsPerThreadLocal_ - Number of connections to the database to be cached for each thread; Helm chart default: `2`
+
+  <InlineNotification>
+  
+  **Note:** For SPM _numConnectionsPerThreadLocal_ should always be set to `2`. `1` connection for the `keyserver` and `1` connection for the SPM database
+  
+  </InlineNotification>
+
+  * `curamdb_numConnectionsPerThreadLocal` = `2`
+  * `curamtimerdb_numConnectionsPerThreadLocal` = `2`
+  * `curamsessdb_numConnectionsPerThreadLocal` = `2`
+* _purgePolicy_ - Connections to be destroyed in the pool when a stale connection is detected; Helm chart default: `EntirePool`
+  * `curamdb_purgePolicy` = `EntirePool`
+  * `curamtimerdb_purgePolicy` = `EntirePool`
+  * `curamsessdb_purgePolicy` = `EntirePool`
+* _statementCacheSize_ - Maximum number of cached statements per connection; Helm chart default: `1000`
+  * `curamdb_statementCacheSize` = `1000`
+  * `curamtimerdb_statementCacheSize` = `1000`
+  * `curamsessdb_statementCacheSize` = `1000`
+
+The SPM Helm charts allow for overriding the JDBC configuration either globally
+(e.g., `apps.tuningDefaults.curamdb_maxPoolSize`) or per application as per the [Initial Tuning Settings](https://ibm.github.io/spm-kubernetes/resources/tuning-values.yaml) examples provided.
+Here we illustrate tuning settings for curamdb in curam producer pods:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          # Curam Producer Database Settings
+          curamdb_maxPoolSize: 17
+          curamdb_numConnectionsPerThreadLocal: 2
+          curamdb_purgePolicy: EntirePool
+          curamdb_statementCacheSize: 1000
+
+          curamtimerdb_maxPoolSize: 9
+          curamtimerdb_numConnectionsPerThreadLocal: 2
+          curamtimerdb_purgePolicy: EntirePool
+          curamtimerdb_statementCacheSize: 1000
+
+          curamsessdb_maxPoolSize: 9
+          curamsessdb_numConnectionsPerThreadLocal: 2
+          curamsessdb_purgePolicy: EntirePool
+          curamsessdb_statementCacheSize: 1000
+...
+```
+
+The various keys in the preceding list map to the pod's WebSphere Liberty configuration in `/config/adc_conf/server_resources_jdbc.xml` and the setting values are populated via `/config/server.env`.
+For example, showing the relevant parts of the `curamdb` configuration:
+
+```xml
+<server>
+  <dataSource id="curamdb" jndiName="jdbc/curamdb"
+    statementCacheSize="${env.DS_CURAMDB_CACHE_SIZE}">
+    <connectionManager
+      maxPoolSize="${env.CM_CURAMDB_MAX_POOL_SIZE}"
+      numConnectionsPerThreadLocal="${env.CM_CURAMDB_CONN_PER_THREAD}"
+      purgePolicy="${env.CM_CURAMDB_PURGE_POLICY}"
+    />
+  </dataSource>
+</server>
+```
+
+## Liberty JMS configuration tuning
+
+The WebSphere Liberty JMS configuration is tunable for the JMS [connection manager settings](https://www.ibm.com/docs/en/was-liberty/base?topic=configuration-jmsconnectionfactory#connectionManager) associated with the `CuramQueueConnectionFactory`
+
+### JMS connection manager tuning
+
+The following JMS connection manager settings, associated with the `CuramQueueConnectionFactory`, can be tuned:
+
+|Connection manager setting|Yaml default comes from|Yaml key used if specific|Description|
+|--------------------------|-----------------------|-------------------------|-----------|
+|`maxPoolSize`|`max_thread + 1`|`apps.<applicationID>.producerTuning.mqMaxPoolSize`|Specifies the maximum number of physical connections for the connection pool|
+|`minPoolSize`|`max_thread + 1`|`apps.<applicationID>.producerTuning.mqMinPoolSize`|Specifies the minimum number of physical connections for the connection pool|
+|`numConnectionsPerThreadLocal`| `6`|`apps.<applicationID>.producerTuning.mqNumConnectionsPerThreadLocal`|Specifies the number of connections to cache for each executor thread|
+|`maxConnectionsPerThread`| `6`|`apps.<applicationID>.producerTuning.maxJMSConnectionsPerThread`|Limits the number of open connections on each thread|
+
+The keys in the preceding table map to the pod's WebSphere Liberty configuration in `/config/adc_conf/server_resources_messaging.xml`
+and the setting values are populated via `/config/server.env` as shown in this WebSphere Liberty configuration fragment:
+
+```xml
+<server>
+  ...
+  <connectionManager
+    id="ConMgr6"
+    maxPoolSize="${env.CM_MQ_MAXPOOLSIZE}"
+    minPoolSize="${env.CM_MQ_MINPOOLSIZE}"
+    numConnectionsPerThreadLocal="${env.CM_JMS_NUM_CONNECTIONS_PER_THREAD_LOCAL}"
+    maxConnectionsPerThread="${env.CM_JMS_MAX_CONNECTIONS_PER_THREAD}"
+  />
+</server>
+
+```
+
+The SPM Helm charts allow for overriding the JMS configuration either globally (e.g. `apps.tuningDefaults.maxThreads`) or per application as per the [Initial Tuning Settings](https://ibm.github.io/spm-kubernetes/resources/tuning-values.yaml) examples provided.
+Here we illustrate tuning settings for curamdb in curam producer pods:
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          mqMaxPoolSize: 9
+          mqMinPoolSize: 9
+          mqNumConnectionsPerThreadLocal: 6
+          maxJMSConnectionsPerThread: 6
+...
+```
+
+## Liberty JVM heap
+
+WebSphere Liberty JVM options are specified via a yaml array in `global.apps.config.<applicationID>.jvm` for all pod types of an application or for specific pod types such as producer, via the `global.apps.config.<applicationID>.producerTuning`	dictionary of tuning values.
+
+<InlineNotification>
+
+**Note:** SPM recommends minimum memory setting per producer pod of `3584Mi`.
+
+</InlineNotification>
+
+Start with the following settings:
+
+* For a given consumer pod where `memory requests` = `3584Mi`, tune the JVM heap size by using the following example:
+
+```
+  -Xmx = 2560M
+  -Xms = 2560M
+  -Xmn = 1536M
+```
+
+Fragment showing JVM settings for the `curam` JMS producer pods (as distinct from the `curam` JMS producer pods):
+
+```yaml
+global:
+  apps:
+    config:
+      curam:
+        producerTuning:
+          jvm: ['-Xms2560M','-Xmx2560M','-Xmn1536M']
+```
+
+These settings are placed in the pod's `/config/jvm.options` file at deployment, for instance:
+
+```
+-Xms2560M
+-Xmx2560M
+-Xmn1536M
+```
+
+## Liberty HTTP session replication
+
+SPM deployed in Kubernetes uses WebSphere Liberty HTTP session replication for failover.
+This replication is done using the database as the persistence and sharing mechanism for HTTP sessions.
+In our performance tests we have seen at least an order of magnitude improvement in service times from the REST producer pod by switching the write frequency of the HTTP session replication from "End of Servlet service" to "Time based".
+
+When using "End of Servlet service", for each HTTP request arriving to the pod, the HTTP session is first read from the database, then the SPM code is executed,
+and lastly the HTTP session is updated in the database before the HTTP response is sent.
+When using "Time based", HTTP requests incur a much smaller overhead as the HTTP sessions are updated in the database asynchronously to the HTTP requests.
+
+Example in context:
+
+```xml
+<server>
+  <httpSessionDatabase
+    ....
+    skipIndexCreation="false"
+    writeFrequency="TIME_BASED_WRITE"
+    writeInterval="2m"
+  />
+</server>
+```

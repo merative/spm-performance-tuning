@@ -1,0 +1,62 @@
+---
+title: Tuning thread pools
+description: Tuning thread pools
+tabs: ['AppServer','JVM Settings', 'Thread Pools', 'JDBC Settings', 'JMS Settings', 'WAS Java 2 Security']
+---
+
+For online HTTP requests and asynchronous JMS processing, IBM® Cúram Social Program Management (SPM)
+is configured to use two distinct thread pools. Tune both pools as explained in the following sections.
+
+To enable the system to be driven at optimum throughput, it is generally recommended that the total number
+of application threads are about twice the number of CPUs. This general convention assumes that the environment has fast I/O subsystems.
+
+<InlineNotification>
+
+**Note:** Threads that are used by SPM carry caches and therefore impact memory requirements. In addition,
+the higher the number of threads, the more likely that contention occurs on Java™ locks. Therefore,
+it is recommended to limit the number of threads to a low multiplier of the number of cores.
+
+</InlineNotification>
+
+## WebSphere: WebContainer and SIBJMSRAThreadPool
+
+In WebSphere® Application Server (WAS), the `WebContainer` thread pool is set up to process HTTP requests and the `SIBJMSRAThreadPool` is set up to process JMS messages.
+
+Use the following specification as a starting point: the total number of threads that SPM uses in the application
+server can be set to twice the number of available cores. This starting point assumes that only one application server
+is running on the operating system or logical partition. Setting the number of threads to twice the number of cores is
+based on experience that processing in SPM is usually split relatively equally between I/O and CPU.
+
+The way processing is then broken down between online and asynchronous processing depends on the characteristics of your
+system: how much asynchronous processing does it do? As a quick-start, a simple, equal split is suggested:
+
+```
+WebContainer_max_threads = number of cores
+SIBJMSRAThreadPool_max_threads = number of cores
+```
+
+It is suggested that you set the minimum number of threads equal to the maximum number of threads. Setting the minimum
+threads equal to the maximum threads avoids the processing cost of pool growth and shrinkage. Use the following settings to configure the pools:
+
+```
+WebContainer_min_threads=WebContainer_max_threads
+SIBJMSRAThreadPool_min_threads=SIBJMSRAThreadPool_max_threads
+```
+
+Then, monitor the thread pool usage and the number of threads that are adjusted according to CPU utilization.
+For example, if a thread pool is fully used and spare CPU capacity exists, you can add a thread. Spare CPU capacity,
+depending on the platform, might be CPU use below 80%. You need to define your CPU plateau threshold based on your
+environment configuration and the results of load testing.
+
+## WebLogic: Maximum thread constraints
+
+In WebLogic Server (WLS) configure the two work managers that SPM uses, which are the default work manager for HTTP
+requests and the MDBWorkManager for JMS. Specify a maximum thread constraint. As a starting point, set the maximum thread constraints to the following values:
+
+```
+default_max_thread_constraint = number of cores
+MDBWorkManager_max_thread_constraint = number of cores
+```
+
+Then, tune the work managers by monitoring thread usage. Monitoring indicates thread usage for a work manager.
+If all threads are used and CPU capacity exists, you can increase the maximum thread constraint.

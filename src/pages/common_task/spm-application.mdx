@@ -1,0 +1,76 @@
+---
+title: Social Program Management application
+description: Social Program Management application
+---
+
+<AnchorLinks small>
+  <AnchorLink>Tuning the key server</AnchorLink>
+  <AnchorLink>Tuning ID generation</AnchorLink>
+  <AnchorLink>Tuning the cache</AnchorLink>
+  <AnchorLink>Tuning login</AnchorLink>
+</AnchorLinks>
+
+Use the following guidelines for basic tuning of the Social Program Management application.
+
+## Tuning the key server
+
+For higher performance, consider setting `humanReadable=1` for all entries in the KeyServer.dmx files prior to building the database.
+
+<InlineNotification>
+
+**Note:** If you set `humanReadable=1`, key allocation becomes sequential and therefore predictable. You must consider the use of this parameter in conjunction with your security requirements.
+
+</InlineNotification>
+
+<InlineNotification>
+
+**Note:** Some customers have reported that when they use `humanReadable=1` and Oracle RAC, concurrent inserts into
+the same table can cause heavy contention on index blocks. A solution to this problem is to re-create the primary
+key index of the affected tables to be `REVERSE KEY`. However, using a `REVERSE KEY` index means that Oracle cannot
+perform an index range scan on that index. This should not be a problem for primary key indexes as we mostly use
+surrogate keys, which have no business meaning.
+
+</InlineNotification>
+
+## Tuning ID generation
+
+If the default ID generation algorithms are used, change them to use the key server to prevent contention.
+Using the default ID generation algorithms could cause database contention. To use key server keysets set the value of the following application properties to `YES`:
+
+| Property name  | Property  |
+| :------------- | :-------- |
+| Generate Provider Reference Number from Key Set | `curam.referencenumber.generateproviderreferencenumberfromkeyset` |
+| Generate Provider Group Reference Number from Key Set | `curam.referencenumber.generateprovidergroupreferencenumberfromkeyset` |
+| Generate External Party ID from Key Set | `curam.referencenumber.generateexternalpartyidfromkeyset` |
+| Generate Employer ID from Key Set | `curam.referencenumber.generateemployeridfromkeyset` |
+| Generate Person ID from Key Set | `curam.referencenumber.generatepersonidfromkeyset` |
+| Generate Provider ID from Key Set | `curam.referencenumber.generateinformationproviderridfromkeyset` |
+| Generate Utility ID from Key Set | `curam.referencenumber.generateutilityidfromkeyset` |
+| Generate Service Supplier ID from Key Set | `curam.referencenumber.generateservicesupplieridfromkeyset` |
+| Generate Product Provider ID from Key Set | `curam.referencenumber.generateproductprovideridfromkeyset` |
+| Generate Representative ID from Key Set | `curam.referencenumber.generaterepresentativeidfromkeyset` |
+
+## Tuning the cache
+
+To improve performance, resize the following caches to the values as indicated in the table below. Monitor the caches and increase their size if evictions occur.
+
+<Caption>
+
+*Table 1:* Recommended cache sizes
+
+</Caption>
+
+| Cache  | Recommended value |
+| :----- | :----------------- |
+|`curam.cache.curam-group.componentModelCache.size`|100000|
+|`curam.cache.curam-group.CREOLERuleSetDtlsCache.size`|Higher than the number of rule sets that are stored in the `CREOLERuleSet` table|
+|`curam.cache.curam-group.RuleSetSnapshotIDCache.size`|Set the size to the largest of the following two values:  <ol><li> Three times the number of rule sets that are stored in the CREOLERuleSet table.</li> <li>The number of snapshots that are stored in the `CREOLERuleSetSnapshot` table.</li></ol>|
+
+## Tuning login
+
+The first login on a cold application server is usually slower than subsequent logins, and can exceed
+the application server transaction timeout. To avoid slow first logins, you can set a custom value for
+the `LoginBeanTransaction.transaction.timeout` property.
+
+Set the value of the `LoginBeanTransaction.transaction.timeout` property to greater than the application server
+transaction timeout. When the value is set, the value overrides the application server transaction timeout for the login transaction.

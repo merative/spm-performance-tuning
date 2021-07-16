@@ -1,0 +1,113 @@
+---
+title: Tuning the XML server pods
+description: Tuning the XML server pods
+---
+
+<AnchorLinks small>
+  <AnchorLink>Overview</AnchorLink>
+  <AnchorLink>Replicas</AnchorLink>
+  <AnchorLink>Pod requests and limits</AnchorLink>
+  <AnchorLink>Tuning the XML server running in a pod</AnchorLink>
+  <AnchorLink>Assessing XML server performance</AnchorLink>
+</AnchorLinks>
+
+## Overview
+
+The following information is specific for the tuning of the SPM XML server on OpenShift and IBM Kubernetes Services.
+
+Additionally, the general XML server tuning information is available in the [Tuning the XML server](/common_task/xmlservertuning) section of this guide.
+
+## Pod replica count
+
+The number of XML Server replicas in a deployment can be specified globally via `xmlserver.replicaCount`, which can be used to amend the default single instance.
+
+## Pod requests and limits
+
+When assessing XML server performance and the setting of XML server pod requests and limits, note that additional replicas are automatically load balanced via the `release-xmlserver` service.
+
+The XML server pod `cpu` and `memory` resource requests and limits can be specified by setting `cpu`: and `memory`: values for the `xmlserver.resources` keys.
+
+The following example illustrates how to set the number of replicas to `6`, with resources requests for the `cpu` of 1 and a `memory` of 1024Mi, and with resources limits for the `cpu` of 1 and a `memory` of 1024Mi:
+
+```yaml
+xmlserver:
+  replicaCount: 6
+  resources:
+    requests:
+      cpu: 1
+      memory: 1024Mi
+    limits:
+      cpu: 1
+      memory: 1024Mi
+```
+
+<InlineNotification kind="warning">
+
+For the Guaranteed QoS, SPM highly recommends that a pod must have **both** CPU and Memory requests and limits set to equal values. If requests & limits are different for a given pod, it would be eligible for rescheduling in case of resource pressure on its node.
+
+For more information please review [Configure Quality of Service for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed).
+
+</InlineNotification>
+
+## Tuning the XML server running in a pod
+
+The XML server provides two areas for tuning:
+
+1. The XML server configuration
+1. The JVM in which the XML server runs
+
+Specific settings for each of these areas are available via Helm chart overrides.  For more information about Helm charts see the IBM Cúram Social Program Management on Kubernetes Runbook:
+
+* The [Configuration Reference](https://ibm.github.io/spm-kubernetes/deployment/config-reference/#xml-server) section lists the Helm chart settings and their default values for the configuration that follows;
+* The [Deploying Helm charts](https://ibm.github.io/spm-kubernetes/deployment/hc_deployment/) section describes how to specify Helm chart overrides in its .
+
+### XML server configuration
+
+These are configuration settings of the XML server, accessible via Helm chart overrides, that can be used to tune its performance:
+
+* XML server thread pool size - This setting essentially controls the amount of work the XML server can do.
+* XML server thread pool queue size - This setting controls the number of requests that are queued inside the XML server as opposed to the TCP backlog queue.
+* XML server socket timeout - This setting (expressed as milliseconds) determines the length of time the XML server will wait for a socket request to complete.
+
+The SPM Helm charts are coded to be able to specify `threadPoolSize`, `threadPoolQueueSize` and `socketTimeout`. For instance, this shows the default settings for `xmlserver` application pods:
+
+```yaml
+xmlserver:
+  config:
+    threadPoolSize: 5
+    threadPoolQueueSize: 200
+    socketTimeout: 60000
+```
+
+### XML server JVM
+
+These are Java JVM settings, accessbile via Helm chart overrides, that can be used to tune its performance:
+
+* Java maximum heap - This setting maps to the the `maxmemory` attribute of the Ant `<java>` task in the XML server `xmlserver.xml` Ant script, which is invoked when the pod is started. (Note: Ant's `maxmemory` attribute overrides the JVM `-Xmx` setting.)
+* Java thread stack size - This maps to  the specification of the JVM stack size argument, `-Xss`, specified as an Ant property override; for example: `-Djava.thread.stack.size="-Xss4m"`
+
+The SPM Helm charts are coded to be able to specify the JVM `maxMemory` and `threadStackSize`. For instance, this shows the default settings for `xmlserver` application pods:
+
+```yaml
+xmlserver:
+  jvm:
+    maxMemory: '-Djava.maxmemory=768m'
+    threadStackSize: '-Djava.thread.stack.size=-Xss4m'
+```
+
+## Assessing XML server performance
+
+The following data can help you assess when tuning may be called for (note limited data availability when not using persistence):
+
+* JVM verbose garbage collection data is your primary source of information on whether the Java heap is sized appropriately.
+  * Availability of data:
+    * When persistence is configured `verbosegc.log` can be found in the persistent `gc` folder of the XML server pod.
+    * When persistence is not configured `verbosegc.log` can be found in the `/opt/ibm/Curam/xmlserver/tmp` folder of the XML server pod during its execution.
+  * To process the data you can use the
+    [IBM Garbage Collection and Memory Visualizer (GCMV)](https://www.ibm.com/support/pages/garbage-collection-and-memory-visualizer-gcmv-2701-ibm-support-assistant-team-server) tool.
+* XML server thread pool worker data is your primary source of information on how the XML server is performing, which can be impacted by, among other factors, how the JVM is performing.
+  * Availability of data:
+    * When persistence is configured the `ThreadPoolWorker-*` files can be found in the persistent `stats` folder of the XML server pod after it has been stopped.
+    * When persistence is not configured there is no data available.
+  * To process the data you can use text-based tools such as [awk](https://en.wikipedia.org/wiki/AWK) as the data in the `ThreadPoolWorker-*` files
+    is tab-delimited, one file per thread (as specified by [<THREAD_POOL_SIZE>](/common_task/xmlservertuning#tuning-and-configuration-changes)).

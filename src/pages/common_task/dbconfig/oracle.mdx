@@ -1,0 +1,165 @@
+---
+title: Oracle
+description: Oracle
+tabs: ['Db2','Oracle']
+---
+
+<AnchorLinks small>
+  <AnchorLink>Physical database design</AnchorLink>
+  <AnchorLink>Initialization and tuning parameters for Oracle databases</AnchorLink>
+  <AnchorLink>Statistics</AnchorLink>
+</AnchorLinks>
+
+The following maintenance and database design guidelines apply to tuning Oracle databases.
+
+<InlineNotification kind="warning">
+
+Database tuning provided in this guidance is not comprehensive.
+
+However, the following values are a starting point for how to configure a performant database for IBM® Cúram Social Program Management.
+It is our recommendation that project teams verify their own tuning, and where necessary adapt and expand the configuration based on their own requirements prior to going in to production.
+
+</InlineNotification>
+
+## Physical database design
+
+In addition to physical database design that is done as part of the project, experience shows that the database
+design has benefits in reducing contention on hot index blocks (cache buffer chain). To achieve this benefit, create
+a 2 K block table space for indexes, and move indexes to that 2 K block index table space.
+
+## Initialization and tuning parameters for Oracle databases
+
+The application server for IBM® Cúram Social Program Management uses JDBC connection pooling and prepared statement caching.
+At bare minimum, review and adjust the `PROCESSES` and `OPEN_CURSORS` parameters from the following list according to your system requirements.
+
+You can use the following guidance when you are deciding which values to apply for `PROCESSES` and `OPEN_CURSORS` on your system.
+In addition to these two basic parameters, check the parameters that are referenced in the following table, and adjust the parameters if necessary.
+
+### PROCESSES
+
+`PROCESSES` specifies the maximum number of operating system user processes that can simultaneously connect to Oracle.
+Its value must allow for all background processes such as locks, job queue processes, and parallel execution processes.
+This parameter is operating system dependent. The default values of the `SESSIONS` and `TRANSACTIONS` parameters are derived
+from this parameter. If you change the value of `PROCESSES`, evaluate whether to adjust the values of those derived parameters.
+
+You can use the following guidance to set a value for `PROCESSES`:
+
+```sql
+PROCESSES > MAX
+```
+
+where
+
+```sql
+MAX=NUMBER OF APPLICATION SERVERS * NUMBER OF POOLED JDBC CONNECTIONS
+```
+
+or
+
+```sql
+MAX=NUMBER OF BATCH STREAMS * 3
+```
+
+<InlineNotification>
+
+**Note:** Increasing the number of processes leads to greater memory consumption. Consult with your database administrator before you make any changes.
+
+</InlineNotification>
+
+### OPEN_CURSORS
+
+Oracle creates a memory area (context area) for processing SQL statements. The value of `OPEN_CURSORS` must
+be set high enough to prevent your application from running out of open cursors. Assuming that a session does
+not open the number of cursors that are specified by `OPEN_CURSORS`, there is no added overhead to setting
+this value higher than needed. The following guidance can be used to set a value for `OPEN_CURSORS`:
+
+```sql
+OPEN_CURSORS >= NUMBER OF OVERALL EXPECTED DBCONNECTIONS
+```
+
+or
+
+```sql
+OPEN_CURSORS > JDBC/CURAMDB PREPARED STATEMENT CACHE SIZE
+```
+
+### SESSIONS
+
+This parameter modifies the number of sessions that are allowed by Oracle at database level.
+
+<InlineNotification>
+
+**Note:** Setting the number of allowed processes automatically sets the appropriate number of sessions, which is the
+recommended way of tuning this parameter. Oracle does not recommend setting this parameter explicitly.
+
+</InlineNotification>
+
+### EVENTS
+
+This parameter is used to reduce contention that is caused by LOB management. To identify the number of chunks to
+be cleaned up each time a reclamation operation is performed, set `EVENT 44951` to a value in the range `1 - 1024`.
+In turn, this parameter reduces the number of requests against the high watermark enqueue.
+
+### DB_BLOCK_SIZE
+
+This parameter controls the size of the default data block size at the time of database creation. If the database exists,
+this value cannot be changed: a new database needs to be created with a different block size. Since Oracle 10g Release 2,
+each table space can have a different block size.
+
+However, the block size still needs to be chosen wisely. Performance tests showed that decreasing the block size decreases threads contention. The `DB_BLOCK_SIZE` default value is `8192`. The value of this parameter must be a multiple of the physical block size at the device level.
+
+Our suggestion is to set the parameter to the lowest possible value.
+
+### DISK_ASYNCH_IO
+
+Much CPU time can be wasted on asynchronous I/O on systems that support it. We suggest setting the `DISK_ASYNCH_IO` parameter to `FALSE`.
+
+<InlineNotification>
+
+**Note:** With `DISK_ASYNCH_IO` off, you should set the `DBWR_IO_SLAVES` parameter to a value other than its default of `0`, to simulate asynchronous I/O.
+
+</InlineNotification>
+
+### DBWR_IO_SLAVES
+
+This parameter is relevant only on systems with only one database writer process (`DBW0`). It specifies the number of I/O
+server processes that are used by the `DBW0` process. The `DBW0` process and its server processes always write to disk.
+By default, the value is `0` and I/O server processes are not used. `DBWR_IO_SLAVES` should be set and tuned when
+simulating asynchronous I/O, for example, with `DISK_ASYNCH_IO=FALSE`. Performance tests have shown that
+setting `DBWR_IO_SLAVE` to `20` yields good performance.
+
+In addition to the parameters mentioned previously, a number of other important Oracle tuning parameters are available
+that you can review and adjust, if necessary. The following table summarizes the tuneable parameters.
+
+<Caption>
+
+*Table 1:* Oracle tuning parameters
+
+</Caption>
+
+| Tuning parameter  | Description and use  | Recommended value |
+| :---------------- | :------------------- | :----------------- |
+|`PROCESSES`|Specifies the maximum number of operating system user processes that can simultaneously connect to Oracle|`PROCESSES > MAX` where `MAX=NUMBER OF APPLICATION SERVERS * NUMBER OF POOLED JDBC CONNECTIONS` or  `MAX=NUMBER OF BATCH STREAMS * 3`|
+|`SESSIONS`|Modifies the number of sessions that are allowed by Oracle at database level.|<InlineNotification kind="warning"> **Note:** Setting this parameter explicitly is not recommended. </InlineNotification>|
+|`OPEN_CURSORS`|Controls the size of the memory area (context area) for processing SQL statements.|`open_cursors >= number of overall expected dbconnections` or `open_cursors > jdbc/curamdb prepared statement cache size`|
+|`EVENTS`|Set to reduce contention caused by LOB management.|`SET EVENTS ='44951 TRACE NAME CONTEXT FOREVER, LEVEL 1024'`|
+|`DB_BLOCK_SIZE`|Controls the size of the default data block size at the time of database creation.|Set to the lowest possible value (2048): `DB_BLOCK_SIZE = 2048`|
+|`FAST_START_MTTR_TARGET`|Specifies the number of seconds that the database takes to perform crash recovery of a single instance. `FAST_START_MTTR_TARGET=60` for approximately 100 MB files. `FAST_START_MTTR_TARGET=300` for approximately 500 MB files. Check the size of log files with: `select * from V$LOG`|`FAST_START_MTTR_TARGET=300`|
+|`DISK_ASYNCH_IO`|Controls whether I/O to data files, control files, and log files is asynchronous.|`DISK_ASYNCH_IO=false`|
+|`DBWR_IO_SLAVES`|Specifies the number of I/O server processes that are used by the DBW0 process.|`DBWR_IO_SLAVES = 20`|
+|`DB_WRITER_PROCESSES`|`DB_WRITER_PROCESSES` (DBWR) manages the "dirty block" cleanouts from the data buffer. Very few tuning options exist except adjusting the number of DBWR processes.`DB_WRITER_PROCESSES` cannot exceed a value of 20.|The default value is the larger value of either: `DB_WRITER_PROCESSES = 1` or `CPU_COUNT/8`|
+|`IDLE_TIME`|Set to greater or equal to the timeout that is set on WebSphere® Application Server.|`ALTER PROFILE DEFAULT LIMIT IDLE_TIME n` Set the value to greater than or equal to the  WebSphere Application Server timeout.|
+|`LOG_BUFFER`|Specifies the amount of memory in bytes that Oracle uses when buffering redo entries to a redo log file. The database chooses an appropriate default based on the server specification. In our tests, we set this parameter with positive results for performance. Consult your database administrator to determine whether setting this parameter is appropriate in your environment.|<InlineNotification kind="warning">**Note:** In newer releases of Oracle, **do not** set `LOG_BUFFER`. </InlineNotification>|
+|`DB_CACHE_SIZE`|Use the DB cache advisor (`V$DB_CACHE_ADVICE view`) to see whether any benefit can be gained from increasing the size of the buffer cache. Consult your database administrator to determine whether setting this parameter is appropriate in your environment.|No recommendation because the parameter is system-dependent.|
+|`TABLESPACE DATAFILES`|More data files results in less write contention. Consult your database administrator to determine whether setting this parameter is appropriate in your environment.|No recommendation because the parameter is system-dependent.|
+
+## Statistics
+
+The database optimizer relies on database statistics to determine which indexes are used for data access.
+If the database statistics are not up-to-date, the correct indexes might not be used. In this case, the performance
+of the system degrades, and at worst the system becomes unstable. It is important to ensure that database statistics
+are run and gathered frequently. The general convention is that database statistics are gathered on a table when 10%
+or more of the data on that table changes. Typical examples in SPM are to run statistic in the early life of the system and after some batch job executions.
+
+More specifically, initially many tables in the SPM database are empty or have a low number of rows. Therefore, before you turn on a production or test system,
+you must run and gather database statistics. During the first hours and days that the system is used, run and gather database statistics often, at least daily.

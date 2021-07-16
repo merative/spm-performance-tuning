@@ -1,0 +1,80 @@
+---
+title: Tuning the HTTP server pods
+description: Tuning the HTTP server pods
+---
+
+<AnchorLinks small>
+  <AnchorLink>Overview</AnchorLink>
+  <AnchorLink>Static Content Server pod</AnchorLink>
+  <AnchorLink>Universal Access Responsive Web Application pod</AnchorLink>
+</AnchorLinks>
+
+## Overview
+
+The following information describes how to tune the HTTP server, which is typically used to host the Social Program Management (SPM) static content, and the web applications that are built by using assets such as the IBM® Universal Access Responsive Web Application.
+
+Optimized to serve [static content](https://ibm.github.io/spm-kubernetes/architecture/arch-overview/static-content/), HTTP server pods work alongside application pods to offload resources that can be applied better for dynamic content.
+
+## Static Content Server pod
+
+### Replicas
+
+The number of replicas serving static content in a deployment can be specified globally via `web.replicaCount`, which can be used to amend the default single instance.
+
+### Pod requests and limits
+
+The Static Content server pod `cpu` and `memory` resource requests and limits can be specified by setting `cpu`: and `memory`: values for the `web.resources` keys.
+
+The following example illustrates how to set the number of replicas to `3`, with resources requests for the `cpu` of 1 and a `memory` of 1024Mi, and with resources limits for the `cpu` of 1 and a `memory` of 1024Mi:
+
+```yaml
+web:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 1
+      memory: 1024Mi
+    limits:
+      cpu: 1
+      memory: 1024Mi
+```
+
+<InlineNotification kind="warning">
+
+For the Guaranteed QoS, SPM highly recommends that a pod must have **both** CPU and Memory requests and limits set to equal values. If requests & limits are different for a given pod, it would be eligible for rescheduling in case of resource pressure on its node.
+
+For more information please review [Configure Quality of Service for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed).
+
+</InlineNotification>
+
+## Universal Access Responsive Web Application pod
+
+### Replicas
+
+The number of replicas serving static content in a deployment can be specified globally via `uawebapp.replicaCount`, which can be used to amend the default single instance.
+
+### Pod requests and limits
+
+The Universal Access Responsive Web Application pod `cpu` and `memory` resource requests and limits can be specified by setting `cpu`: and `memory`: values for the `uawebapp.resources` keys.
+
+The following example illustrates how to set the number of replicas to `3`, with resources requests for the `cpu` of 1 and a `memory` of 1024Mi, and with resources limits for the `cpu` of 1 and a `memory` of 1024Mi:
+
+```yaml
+uawebapp:
+  replicaCount: 3
+  resources:
+    requests:
+      cpu: 1
+      memory: 1024Mi
+    limits:
+      cpu: 1
+      memory: 1024Mi
+```
+
+<InlineNotification kind="warning">
+
+For the Guaranteed QoS, SPM highly recommends that a pod must have **both** CPU and Memory requests and limits set to equal values. If requests & limits are different for a given pod, it would be eligible for rescheduling in case of resource pressure on its node.
+
+For more information please review [Configure Quality of Service for Pods](https://kubernetes.io/docs/tasks/configure-pod-container/quality-service-pod/#create-a-pod-that-gets-assigned-a-qos-class-of-guaranteed).
+
+</InlineNotification>

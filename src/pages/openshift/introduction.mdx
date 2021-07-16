@@ -1,0 +1,82 @@
+---
+title: Introduction
+description: Introduction
+---
+
+This section provides information related to the tuning of IBM® Cúram Social Program Management (SPM) deployed on cloud environments such as the OpenShift Container Platform (OCP).
+
+> The configurable parameters and tuning values listed are for guidance purposes only. These configurable parameters and values are a suggested starting point and are not definitive. Clients should perform their own testing to validate and verify their own settings, in order to meet their system needs.
+
+> While the starter configurable parameters and values are based on experience and are sensible for production, it is unlikely they are the configuration for your specific system. **Therefore, it is strongly recommended these configurations are further tuned during your load testing and production monitoring.**
+
+The parameters are key to the performance of Social Program Management on WebSphere®
+Liberty (WLP) application server running on Kubernetes. Refine the values during load testing of the system and during monitoring of production. A load test phase in the project is highly recommended.
+
+<AnchorLinks small>
+  <AnchorLink>Architecture</AnchorLink>
+  <AnchorLink>What are JMS producers and JMS consumers?</AnchorLink>
+  <AnchorLink>Helm Charts</AnchorLink>
+  <AnchorLink>Passing Values</AnchorLink>
+  <AnchorLink>Parameters</AnchorLink>
+</AnchorLinks>
+
+<InlineNotification>
+
+Please note as a complex software product actual results may vary, based on a broad range of implementation specific factors, such as Cúram modifications and customization, transaction mix, hardware platform, third party software and database size.
+
+</InlineNotification>
+
+## Architecture
+
+As a platform for Social Programs, SPM allows customers to configure and customize their deployments according to their own requirements.
+
+The tuning parameters presented are for illustrative purpose only, therefore it is important to understand how the components interconnect with each other by
+reviewing the [Architecture Overview](https://ibm.github.io/spm-kubernetes/architecture/arch-overview/architecture-overview)
+and by performing adequate workload exercises to determine the optimal values for each deployment.
+
+### What are JMS producers and JMS consumers?
+
+To mitigate against the risk of thread exhaustion, the client HTTP initiated transactions and JMS initiated transactions run on different WebSphere Liberty instances, integrated through a messaging engine (IBM MQ).
+
+The Application/EAR responsible for processing client HTTP initiated transactions is called the JMS Producer and has JMS message consumption through EJB MDBs disabled.
+
+The Application/EAR responsible for processing JMS initiated transactions is called the JMS Consumer and has JMS message consumption through EJB MDBs enabled.
+
+This resolution is part of a multi-faceted solution, with client HTTP initiated transactions and JMS initiated transactions isolated from each other, and the implementation of local interfaces.
+
+For more information please review the SPM [Transaction isolation](https://www.ibm.com/docs/en/spm/7.0.11?topic=architecture-transaction-isolation) topic.
+
+## Helm Charts
+
+The values and parameters presented in this document apply to the Helm Charts distributed in the [SPM-Kubernetes](https://github.com/IBM/spm-kubernetes/) repository.
+
+## Docker
+
+As part of the [SPM Kubernetes containerization assets](https://github.com/IBM/spm-kubernetes) release, SPM has not embedded tuning within Dockerfiles.
+Clients are free to update these docker files with their required tuning based on their requirements.
+
+## Passing Values
+
+The Helm Charts expose parameters that can be accessed using the Values object, which users can override using an [value file](https://helm.sh/docs/chart_template_guide/values_files/).
+
+Consequently, in this guide the tuning of the components is made possible by passing values into the chart during deployment time.
+
+The following command example shows a typical command to pass values during the deployment of the `spm` chart:
+
+```shell
+helm install spm -f override-values.yaml
+```
+
+## Parameters
+
+The parameters documented in this guide and in the [SPM Configuration Reference](https://ibm.github.io/spm-kubernetes/deployment/config-reference/)
+are referenced in a 'flat' manner to allow specifying which values to amend in a readable way.
+
+For example, the value `global.images.imageTag` refers to the following in an override values file:
+
+```yaml
+global:
+  images:
+    imageTag: "latest"
+```
+

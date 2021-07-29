@@ -7,12 +7,12 @@ const links = [
     href: 'https://github.com/IBM/spm-performance-tuning',
   },
   {
-    title: 'Knowledge Center',
-    href: 'https://www.ibm.com/support/knowledgecenter/SS8S5A_7.0.11/com.ibm.curam.nav.doc/spm_welcome.html',
+    title: 'IBM Documentation',
+    href: 'https://www.ibm.com/docs/en/spm/7.0.11?topic=product-overview',
   },
   {
     title: 'Change Log',
-    href: 'https://github.com/IBM/spm-performance-tuning/blob/master/CHANGELOG.md',
+    href: 'https://github.com/IBM/spm-performance-tuning/blob/main/CHANGELOG.md',
   }
 ];
 

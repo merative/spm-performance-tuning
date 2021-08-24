@@ -31,7 +31,7 @@ For more information see:
 The term **JMS consumer** refers to the functional structure of SPM applications (for example, `curam`, `rest`, etc.)
 as deployed in OpenShift such that the JMS reading and processing portion of the application is isolated from its client side functionality.
 That is, SPM clients produce JMS messages that perform asynchronous operations, which are consumed by  **JMS consumer** pods.
-For more information please review [Transaction isolation](https://www.ibm.com/docs/en/spm/7.0.11?topic=architecture-transaction-isolation).
+For more information please review [Transaction isolation](https://www.ibm.com/docs/en/spm/8.0.0?topic=architecture-transaction-isolation).
 
 Benefits of this separation include:
 
@@ -237,7 +237,7 @@ The WebSphere Liberty [JDBC configuration](https://www.ibm.com/docs/en/was-liber
 |Database definitions | Description |
 |:- | :- |
 |`curamdb`|Used by SPM applications|
-|`curamtimerdb` | Used by the [SPM timer infrastructure](https://www.ibm.com/docs/en/spm/7.0.11?topic=behavior-cram-timer) |
+|`curamtimerdb` | Used by the [SPM timer infrastructure](https://www.ibm.com/docs/en/spm/8.0.0?topic=behavior-cram-timer) |
 |`curamsessdb`| Used for WebSphere Liberty's [HTTP session replication](/openshift/tune_jms_producer/tune_jms_producer#liberty-http-session-replication)|
 
 The following yaml keys are provided for tuning the WebSphere Liberty JDBC configuration:

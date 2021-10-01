@@ -8,7 +8,7 @@
 - title: Common tuning tasks
   pages:
     - title: Database Configuration
-      path: /common_task/dbconfig/db2
+      path: /common_task/dbconfig/common
     - title: Tuning the application
       path: /common_task/spm-application
     - title: Tuning batch processes

@@ -31,7 +31,7 @@ For more information see:
 The term **JMS consumer** refers to the functional structure of SPM applications (for example, `curam`, `rest`, etc.)
 as deployed in OpenShift such that the JMS reading and processing portion of the application is isolated from its client side functionality.
 That is, SPM clients produce JMS messages that perform asynchronous operations, which are consumed by  **JMS consumer** pods.
-For more information please review [Transaction isolation](https://www.ibm.com/docs/en/spm/7.0.11?topic=architecture-transaction-isolation).
+For more information please review [Transaction isolation](https://www.ibm.com/docs/en/spm/8.0.0?topic=architecture-transaction-isolation).
 
 Benefits of this separation include:
 
@@ -227,8 +227,17 @@ In that case, it is recommended to review the SQLStats from the JMX Stats, from 
 Then, use a simple heuristic based on the distribution of SQL executions to find a smaller cache size that covers around
 90% of SQL executions from the application and gives a better balance between system performance and Java™ heap utilization.
 However, monitor prepared statement cache discards, system performance, and heap utilization, and adjust the cache size further as needed.
-
 </InlineNotification>
+
+### Transaction Isolation Level
+
+As outlined in the IBM Cúram Social Program Management documentation [Transaction control/Underlying design](https://www.ibm.com/docs/en/spm/8.0.0?topic=control-underlying-design),
+the `isolationLevel` for the application producer and consumer pod data sources must be set in the Helm configmaps
+[configmap-dbconn.yaml](https://github.com/IBM/spm-kubernetes/blob/main/helm-charts/apps/templates/configmaps/configmap-dbconn.yaml) and
+[configmap-sessions.yaml](https://github.com/IBM/spm-kubernetes/blob/main/helm-charts/apps/templates/configmaps/configmap-sessions.yaml) to:
+
+* `isolationLevel="TRANSACTION_REPEATABLE_READ"` for Db2 (default)
+* `isolationLevel="TRANSACTION_READ_COMMITTED"` for Oracle
 
 ### JDBC configuration tuning
 
@@ -237,7 +246,7 @@ The WebSphere Liberty [JDBC configuration](https://www.ibm.com/docs/en/was-liber
 |Database definitions | Description |
 |:- | :- |
 |`curamdb`|Used by SPM applications|
-|`curamtimerdb` | Used by the [SPM timer infrastructure](https://www.ibm.com/docs/en/spm/7.0.11?topic=behavior-cram-timer) |
+|`curamtimerdb` | Used by the [SPM timer infrastructure](https://www.ibm.com/docs/en/spm/8.0.0?topic=behavior-cram-timer) |
 |`curamsessdb`| Used for WebSphere Liberty's [HTTP session replication](/openshift/tune_jms_producer/tune_jms_producer#liberty-http-session-replication)|
 
 The following yaml keys are provided for tuning the WebSphere Liberty JDBC configuration:
@@ -248,9 +257,9 @@ The following yaml keys are provided for tuning the WebSphere Liberty JDBC confi
   * `curamsessdb_maxPoolSize`= `( max_threads + 1 )`
 * _numConnectionsPerThreadLocal_ - Number of connections to the database to be cached for each thread:
   <InlineNotification>
-  
+
   **Note:** For SPM _numConnectionsPerThreadLocal_ should always be set to `2`. `1` connection for the `keyserver` and `1` connection for the SPM database
-  
+
   </InlineNotification>
 
   * `curamdb_numConnectionsPerThreadLocal` = `2`

@@ -1,7 +1,7 @@
 ---
 title: Db2
 description: Db2
-tabs: ['Db2','Oracle']
+tabs: ['Common','Db2','Oracle']
 ---
 
 <AnchorLinks small>
@@ -35,6 +35,19 @@ In addition to physical database design done as part of the project, the followi
 * Enable compression on tables if it is wanted. Compression was tested by IBM with no issues.
 * Review the use of dedicated table spaces. Consider moving the largest tables (for example, `DYNAMICEVIDENCEDATAATTRIBUTE` and `DEPENDENCY`) to dedicated table spaces. However, from experience, with good I/O layouts, the only reason for dedicated table spaces is maintenance.
 * Review the use of partitioning. From experience, with good I/O layouts, the only reason for partitioning is maintenance (similar to dedicated table spaces).
+* After creating the database, see [Configuring the IBM Db2 database](https://www.ibm.com/docs/en/spm/8.0.0?topic=configuration-configuring-db2-database), consider setting the `highmem` buffer pool size to `AUTOMATIC` e.g.,
+
+ ```sql
+  db2 alter bufferpool HIGHMEM size AUTOMATIC
+ ```
+
+  see [ALTER BUFFERPOOL](https://www.ibm.com/support/producthub/db2/docs/content/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000885.html)
+
+ <InlineNotification kind="warning">
+
+  **Note:** The above will cause the Ant `configtest` target to fail, see [Testing the configuration](https://www.ibm.com/docs/en/spm/8.0.0?topic=configuration-testing). Therefore, run the `build cofigtest` procedure prior to altering the bufferpool.
+
+ </InlineNotification>
 
 ## Maintenance
 

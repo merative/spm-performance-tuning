@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file
 
+## v21.9.0
+
+### Added
+
+* Foreign key constraints recommendations for production databases
+* Db2: Set `HIGHMEM` bufferpool size to `AUTOMATIC`
+* Transaction Isolation Level settings for JMS producer / consumer pod data sources
+
+### Changed
+
+* Updated IBM Documentation link to SPM V8.
+
 ## v21.7.1
 
 ### Changed

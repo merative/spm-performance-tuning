@@ -1,0 +1,31 @@
+---
+title: Common DB configuration and tuning
+description: Common DB configuration and tuning
+tabs: ['Common','Db2','Oracle']
+---
+
+<AnchorLinks small>
+  <AnchorLink>Foreign key constraints</AnchorLink>
+</AnchorLinks>
+
+The following maintenance and database design guidelines apply to tuning across all supported databases.
+
+<InlineNotification kind="warning">
+
+Database tuning provided in this guidance is not comprehensive.
+
+However, the following values are a starting point for how to configure a performant database for IBM® Cúram Social Program Management.
+It is our recommendation that project teams verify their own tuning, and where necessary adapt and expand the configuration based on their own requirements prior to going in to production.
+</InlineNotification>
+
+## Foreign key constraints
+
+As outlined in the IBM Cúram Social Program Management documentation [Creating the Production Database in the Application](https://www.ibm.com/docs/en/spm/8.0.0?topic=setup-creating-production-database-in-application):
+
+* Omit foreign key constraints as they are not supported in a production environment
+
+ <InlineNotification>
+
+ **Note:** The Cúram Reference Application enforces referential integrity (RI) in the application and as such using database-enforced RI will degrade performance. It is strongly recommended that in a production environment you do not create foreign key constraints on your database.
+
+ </InlineNotification>

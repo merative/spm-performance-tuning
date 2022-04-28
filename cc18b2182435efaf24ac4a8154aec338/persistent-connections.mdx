@@ -1,0 +1,33 @@
+---
+title: Configuring persistent connections
+description: Configuring persistent connections
+tabs: ['HTTP Server','HTTP Caching','HTTP Compression', 'HTTP Monitoring', 'Persistent Connections','Thread Tuning']
+---
+
+HTTP persistent connection or HTTP keepalive is a TCP feature that is used to reduce network congestion and CPU usage,
+in particular on systems that have lower hardware specifications. The feature allows multiple requests over a single connection.
+Reusing a connection in this way is useful with secure HTTP because the same connection does not need to be renegotiated every time.
+
+The following parameters in the `httpd.conf` file control persistent connections:
+
+```shell
+KeepAlive On
+MaxKeepAliveRequest 1000
+KeepAliveTimeOut 2
+```
+
+The `KeepAliveTimeOut` parameter controls the amount of time that the server waits for the next request on a persistent connection.
+If the value is too small, connections might not be reused efficiently. If the value is too large, web server threads might not
+be used efficiently. We recommend starting by setting the value to 2 and then adjust it if necessary. It is suggested that
+you keep this value lower than the average think time of the users of the system.
+
+Recent performance tests highlighted that some disadvantages occur when persistent connections are used with SPM application servers:
+
+* Intermittent blank or frozen application
+* Failure to load content after some time
+
+In addition, we found that the WebSphere® Application Server (WAS) setting `WebServer Plug-in Properties-Connection Timeout` affects
+the server's ability to handle heavy loads. When the feature is turned on, issues that arise include huge numbers of objects
+are created when the server is unable to handle the load, extreme resource utilization occurs on the server, and server failures occur.
+
+If you experience any of the issues when you test your system with heavy loads, we recommend disabling the persistent Connections/keepalive feature.

@@ -1,0 +1,5 @@
+{
+    "componentChunkName": "component---src-pages-index-mdx",
+    "path": "/",
+    "result": {"pageContext":{"frontmatter":{"description":"","title":""},"relativePagePath":"/index.mdx","titleType":"page","MdxNode":{"id":"7d54f5ea-0b2d-5dd8-93ca-ab7aad3fc48c","children":[],"parent":"0283ef05-040d-5a67-8897-12f72bac21a0","internal":{"content":"import HomepageTemplate from '../components/Homepage';\nexport default HomepageTemplate;\n","type":"Mdx","contentDigest":"3356d143e3c674b3ba6fbda5db0440d8","owner":"gatsby-plugin-mdx","counter":104},"frontmatter":{"description":"","title":""},"exports":{},"rawBody":"import HomepageTemplate from '../components/Homepage';\nexport default HomepageTemplate;\n","fileAbsolutePath":"/home/travis/build/IBM/spm-performance-tuning/src/pages/index.mdx"}}},
+    "staticQueryHashes": ["1364590287","137577622","2102389209","2456312558","2610115429","2746626797","3037994772","768070550"]}

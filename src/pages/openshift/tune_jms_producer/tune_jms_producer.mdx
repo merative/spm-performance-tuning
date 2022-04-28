@@ -229,16 +229,6 @@ Then, use a simple heuristic based on the distribution of SQL executions to find
 However, monitor prepared statement cache discards, system performance, and heap utilization, and adjust the cache size further as needed.
 </InlineNotification>
 
-### Transaction Isolation Level
-
-As outlined in the IBM Cúram Social Program Management documentation [Transaction control/Underlying design](https://www.ibm.com/docs/en/spm/8.0.0?topic=control-underlying-design),
-the `isolationLevel` for the application producer and consumer pod data sources must be set in the Helm configmaps
-[configmap-dbconn.yaml](https://github.com/IBM/spm-kubernetes/blob/main/helm-charts/apps/templates/configmaps/configmap-dbconn.yaml) and
-[configmap-sessions.yaml](https://github.com/IBM/spm-kubernetes/blob/main/helm-charts/apps/templates/configmaps/configmap-sessions.yaml) to:
-
-* `isolationLevel="TRANSACTION_REPEATABLE_READ"` for Db2 (default)
-* `isolationLevel="TRANSACTION_READ_COMMITTED"` for Oracle
-
 ### JDBC configuration tuning
 
 The WebSphere Liberty [JDBC configuration](https://www.ibm.com/docs/en/was-liberty/base?topic=configuration-datasource) is tunable for each of these database definitions:
